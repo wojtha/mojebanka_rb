@@ -1,8 +1,9 @@
 #!/usr/bin/ruby
 # coding: utf-8
 
-require "date"
+require 'date'
 require 'iconv'
+require 'optparse'
 
 
 def mojebanka_convert_file(filename, options)
@@ -157,11 +158,51 @@ def number_format(num)
   minus + first.reverse + '.' + second
 end
 
+
 #MAIN LOOP==========================================================================
+
 
 # Check if this file is being executed
 if File.identical?(__FILE__, $0)
   #Mojebanka.run
+  options = {}
+  opt_parser = OptionParser.new do |opts|
+    opts.banner = "Pouziti: mojebanka.rb [options] file1 file2 ...\n\nPriklad: ruby mojebanka.rb -f=csv *.txt"
+
+    # Define the options, and what they do
+    options[:format] = 'qif'
+    opts.on( '-f', '--format FORMAT', ['qif', 'cvs'], 'Format souboru: qif, cvs') do |format|
+      options[:format] = format
+    end
+    
+    # This displays the help screen, all programs are
+    # assumed to have this option.
+    opts.on( '-h', '--help', 'Zobrazi napovedu' ) do
+      puts opts
+      exit
+    end
+  end
+   
+  # Parse the command-line. Remember there are two forms
+  # of the parse method. The 'parse' method simply parses
+  # ARGV, while the 'parse!' method parses ARGV and removes
+  # any options found there, as well as any parameters for
+  # the options. What's left is the list of files to resize.
+  opt_parser.parse!
+
+  # Filter only existing files
+  files = ARGV.uniq.find_all { |f| File.exist?(f); }
+
+  if files.size == 0
+    puts "Argumenty neobsahovaly zadne platne soubory."
+    puts opt_parser
+    exit
+  end
+
+  files.each do |filename|
+    puts "Konvertuji soubor #{filename}..."
+    mojebanka_convert_file(filename, options)
+  end
 end
 
 
