@@ -2,6 +2,29 @@
 # coding: utf-8
 
 require "date"
+require 'iconv'
+
+def mojebanka_convert_file(filename, options)
+  fin = File.open(filename, 'r')
+  begin
+    content = fin.read()
+    #content = Iconv.iconv('CP852//IGNORE', 'utf-8', content)
+    #content = Iconv.iconv('CP852', 'UTF-8//TRANSLIT1', content)
+    #content = Iconv.iconv('UTF-8', 'CP852', content)
+    content = Iconv.conv('UTF-8', 'windows-1250', content)
+    transactions = mojebanka_txt_parse(content)
+    if options[:format] == 'cvs'
+      mojebanka_to_cvs(transactions)
+    else
+      mojebanka_to_qif(transactions)
+    end
+    fin.close()      
+  rescue SystemCallError
+    $stderr.print "IO failed: " + $!
+    fin.close
+    raise
+  end
+end
 
 def mojebanka_txt_parse(content)
   transactions = []
@@ -105,6 +128,11 @@ def mojebanka_to_qif(transactions)
     File.delete(fout)
     raise
   end
+end
+
+def mojebanka_read_file(filename)
+
+
 end
 
 
