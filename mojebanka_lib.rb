@@ -157,6 +157,13 @@ def number_format(num)
   minus + first.reverse + '.' + second
 end
 
+#MAIN LOOP==========================================================================
+
+# Check if this file is being executed
+if File.identical?(__FILE__, $0)
+  #Mojebanka.run
+end
+
 
 #DEBUG==========================================================================
 
