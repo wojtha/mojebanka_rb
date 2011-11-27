@@ -7,8 +7,8 @@ banky, kde je povolen export transakcí pouze do textového formátu.
 
 ## Použití
 
-ruby mojebanka.rb --format=qif Tisk_20110910153349.txt
-ruby mojebanka.rb --format=cvs *.txt
+    ruby mojebanka.rb --format=qif Tisk_20110910153349.txt    
+    ruby mojebanka.rb --format=cvs *.txt
 
 ## Parametry
 
