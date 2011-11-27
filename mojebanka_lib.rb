@@ -17,94 +17,95 @@ def mojebanka_txt_parse(content)
 
   cells.each do |cell|
     next if re_skip.match(cell)
-    
-    match = re_parse.match(cell)
-    
-    if match
 
+    match = re_parse.match(cell)
+
+    if match
       # Copy captures from immutable MatchData to Hash and strip whitespace.
       transaction = {}
       match.names.each do |key|
         transaction[key.to_sym] = match[key].strip
       end
-  
+
       # Desc 4 needs to be parsed separately
-      start = cell.index("Zpráva pro příjemce")     
+      start = cell.index("Zpráva pro příjemce")
       if start.nil? then
         transaction[:desc4] = ""
       else
         desc4 = cell.slice(start + 19, cell.length)
         desc4.sub!(/\n|\r|\t/, ' ')
-        desc4.strip!      
+        desc4.strip!
         transaction[:desc4] = desc4
       end
-      
+
       # Convert dates
       [:date1, :date2, :date3].each do |key|
-          if transaction[key] and transaction[key].length == 10
-            transaction[key] = Date.strptime(transaction[key], '%d.%m.%Y')
-          else
-            transaction[key] = ""
-          end
+        if transaction[key] and transaction[key].length == 10
+          transaction[key] = Date.strptime(transaction[key], '%d.%m.%Y')
+        else
+          transaction[key] = ""
+        end
       end
-      
+
       transactions << transaction
     end
   end
-  
+
   return transactions
 end
 
 
- def mojebanka_to_cvs(transactions)
-    filename = date_filename('cvs')
-    fout = File.open(filename, 'w')
-    begin
-      columns = [:date1, :type, :account, :price, :var_sym, :desc1, :desc2, :desc3, :desc4]
-      fout.write(columns.join("\t") + "\n")
-      transactions.each do |tr|
-        data = []
-        tr[:date1] = tr[:date1].nil? ? "" : tr[:date1].strftime('%d.%m.%Y')
-        columns.each { |col| data << tr[col] }
-        fout.write(data.join("\t") + "\n")
-      end
-    rescue SystemCallError
+def mojebanka_to_cvs(transactions)
+  filename = date_filename('cvs')
+  fout = File.open(filename, 'w')
+  begin
+    columns = [:date1, :type, :account, :price, :var_sym, :desc1, :desc2, :desc3, :desc4]
+    fout.write(columns.join("\t") + "\n")
+    transactions.each do |tr|
+      data = []
+      tr[:date1] = tr[:date1].nil? ? "" : tr[:date1].strftime('%d.%m.%Y')
+      columns.each { |col| data << tr[col] }
+      fout.write(data.join("\t") + "\n")
+    end
+  rescue SystemCallError
     $stderr.print "IO failed: " + $!
     fout.close
     File.delete(fout)
     raise
-    end
   end
+end
 
- def mojebanka_to_qif(transactions)
-    filename = date_filename('qif')
-    fout = File.open(filename, 'w')
-    begin
-      fout.write("!Type:Bank\n")
-      transactions.each do |tr|
-        amount = tr[:price].sub(/\+?(-?)(\d+),(\d{2}) CZK/, '\1\2.\3').to_f
+def mojebanka_to_qif(transactions)
+  filename = date_filename('qif')
+  fout = File.open(filename, 'w')
+  begin
+    fout.write("!Type:Bank\n")
+    
+    transactions.each do |tr|
+      amount = tr[:price].sub(/\+?(-?)(\d+),(\d{2}) CZK/, '\1\2.\3').to_f
 
-        payee = tr[:account] == '\0100' ? 'KB' : tr[:account]
-        if tr[:var_sym] then
+      payee = tr[:account] == '\0100' ? 'KB' : tr[:account]
+      if tr[:var_sym]
         payee = payee + ' ' + tr[:var_sym]
-        end
-
-        tdate = tr[:date1].nil? ? "" : tr[:date1].strftime('%d/%m/%Y')
-
-        data = 'D' + tdate + "\n" +
-               'T' + number_format(amount) + "\n" +
-               'P' + payee + "\n" +
-               'M' + tr[:desc1] + ' ' + tr[:desc2] + ' ' + tr[:desc3] + ' ' + tr[:desc4] + "\n" +
-               "^\n"
-        fout.write(data)
       end
-    rescue SystemCallError
-      $stderr.print "IO failed: " + $!
-      fout.close
-      File.delete(fout)
-      raise
+
+      tdate = tr[:date1].nil? ? "" : tr[:date1].strftime('%d/%m/%Y')
+
+      data = 'D' + tdate + "\n" +
+             'T' + number_format(amount) + "\n" +
+             'P' + payee + "\n" +
+             'M' + tr[:desc1] + ' ' + tr[:desc2] + ' ' + tr[:desc3] + ' ' + tr[:desc4] + "\n" +
+             "^\n"
+      fout.write(data)
     end
+
+  rescue SystemCallError
+    $stderr.print "IO failed: " + $!
+    fout.close
+    File.delete(fout)
+    raise
   end
+end
 
 
 def date_filename(ext)
@@ -113,9 +114,9 @@ end
 
 
 def number_format(num)
-  first, second = sprintf("%01.2f", num).split(".")  
-  if first.start_with?("-") then 
-    minus = "-"; 
+  first, second = sprintf("%01.2f", num).split(".")
+  if first.start_with?("-") then
+    minus = "-";
     first.sub!("-", "");
   else
     minus = ""
